@@ -1,7 +1,8 @@
 'use strict';
 
-const expectThrow = require('./expectThrow.js')
-const BigNumber = require('bignumber.js')
+const expectThrow = require('./expectThrow.js');
+const timeTravel = require('./TimeTravel');
+const BigNumber = require('bignumber.js');
 var QToken = artifacts.require("QToken");
 var FeeCollector = artifacts.require("FeeCollector");
 const SUPPLY = new BigNumber('1000000000').times(new BigNumber('10').pow(8));
@@ -43,13 +44,23 @@ contract('FeeCollector', async (accounts) => {
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
-            await token.transfer(accounts[1], 1000, {from: accounts[0]})
+            await token.transfer(accounts[1], SUPPLY.div(2), {from: accounts[0]});
+            await token.approve(feeCollector.address, SUPPLY, {from: accounts[0]});
+            await token.approve(feeCollector.address, SUPPLY, {from: accounts[1]});
 
-            assert.equal(await feeCollector.tokensToBeDistributed.call(), 1, "Incorrect number of fees collected!");
+            assert.equal(await feeCollector.tokensToBeDistributed.call(), new BigNumber('100').times(new BigNumber('10').pow(8)).toNumber(), "Incorrect number of fees collected!");
 
-            await token.transfer(accounts[1], 1000, {from: accounts[0]})
+            await feeCollector.startRound(1);
 
-            assert.equal(await feeCollector.tokensToBeDistributed.call(), 2, "Incorrect number of fees collected!");
+            assert.equal(await feeCollector.tokensToBeDistributed.call(), 0, "Incorrect number of tokens to be distributed!");
+            assert.equal(await feeCollector.isThereARoundActive.call(), true, "A distribution round should be active!");
+
+            await feeCollector.lockTokensForActiveRound(1, {from: accounts[1]});
+
+            await timeTravel(3600);
+
+            await feeCollector.stopActiveRound();
+
         });
     });
 

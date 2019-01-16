@@ -41,7 +41,9 @@ contract FeeCollector {
 
     function stopActiveRound() public {
         DistributionRound storage distributionRound = distributionRounds[distributionRounds.length - 1];
-        checkActiveRound(distributionRound);
+        require(isThereARoundActive);
+        require(distributionRound.exists);
+        require(distributionRound.endTime < now);
 
         isThereARoundActive = false;
     }
@@ -49,7 +51,9 @@ contract FeeCollector {
     function lockTokensForActiveRound(uint tokensLocked) public {
         uint roundIndex = distributionRounds.length - 1;
         DistributionRound storage distributionRound = distributionRounds[roundIndex];
-        checkActiveRound(distributionRound);
+        require(isThereARoundActive);
+        require(distributionRound.exists);
+        require(distributionRound.endTime >= now);
 
         qToken.transferFrom(msg.sender, address(this), tokensLocked);
         distributionRound.totalLockedTokens += tokensLocked;
@@ -70,9 +74,7 @@ contract FeeCollector {
         qToken.transfer(msg.sender, totalTokens);
     }
 
-    function checkActiveRound(DistributionRound memory distributionRound) internal view {
-        require(isThereARoundActive);
-        require(distributionRound.exists);
-        require(distributionRound.endTime < now);
+    function getNumberOfRounds() public view returns (uint){
+        return distributionRounds.length;
     }
 }
