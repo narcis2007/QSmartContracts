@@ -50,17 +50,21 @@ contract('FeeCollector', async (accounts) => {
 
             assert.equal(await feeCollector.tokensToBeDistributed.call(), new BigNumber('100').times(new BigNumber('10').pow(8)).toNumber(), "Incorrect number of fees collected!");
 
-            await feeCollector.startRound(1);
+            await feeCollector.startRound(100000000);
 
-            assert.equal(await feeCollector.tokensToBeDistributed.call(), 0, "Incorrect number of tokens to be distributed!");
+            assert.equal((await feeCollector.tokensToBeDistributed.call()).toString(), '0', "Incorrect number of tokens to be distributed!");
             assert.equal(await feeCollector.isThereARoundActive.call(), true, "A distribution round should be active!");
 
-            await feeCollector.lockTokensForActiveRound(1, {from: accounts[1]});
+            await feeCollector.lockTokensForActiveRound(100000000, {from: accounts[1]});
 
             await timeTravel(3600);
 
             await feeCollector.stopActiveRound();
+            await feeCollector.retrieveTokensAfterRoundFinished(0);
+            await feeCollector.retrieveTokensAfterRoundFinished( 0, {from: accounts[1]});
 
+            assert.equal((await token.balanceOf(accounts[0])).toString(), SUPPLY.div(2).plus(new BigNumber('50').times(new BigNumber('10').pow(8))).toString())
+            assert.equal((await token.balanceOf(accounts[1])).toString(), SUPPLY.div(2).minus(new BigNumber('50').times(new BigNumber('10').pow(8))).toString())
         });
     });
 

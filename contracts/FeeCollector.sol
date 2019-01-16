@@ -55,7 +55,7 @@ contract FeeCollector {
         require(distributionRound.exists);
         require(distributionRound.endTime >= now);
 
-        qToken.transferFrom(msg.sender, address(this), tokensLocked);
+        qToken.transferFromWithoutFees(msg.sender, address(this), tokensLocked);
         distributionRound.totalLockedTokens += tokensLocked;
         lockedTokensForRound[roundIndex][msg.sender] += tokensLocked;
     }
@@ -66,12 +66,12 @@ contract FeeCollector {
         require(distributionRound.endTime < now, "Round must not be still active!");
         require(distributionRound.exists);
 
-        uint totalTokens = lockedTokensForRound[roundIndex][msg.sender];
-        totalTokens += (distributionRound.tokensToBeDistributed * totalTokens) / distributionRound.totalLockedTokens;
+        uint senderLockedTokens = lockedTokensForRound[roundIndex][msg.sender];
+        uint totalTokensToBeRetrieved = (distributionRound.tokensToBeDistributed * senderLockedTokens) / distributionRound.totalLockedTokens;
 
         lockedTokensForRound[roundIndex][msg.sender] = 0;
 
-        qToken.transfer(msg.sender, totalTokens);
+        qToken.transferWithoutFees(msg.sender, totalTokensToBeRetrieved + senderLockedTokens);
     }
 
     function getNumberOfRounds() public view returns (uint){
