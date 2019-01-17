@@ -44,6 +44,8 @@ contract('FeeCollector', async (accounts) => {
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
+            await feeCollector.setMakerDaoAddress(accounts[2]);
+
             await token.transfer(accounts[1], SUPPLY.div(2), {from: accounts[0]});
             await token.approve(feeCollector.address, SUPPLY, {from: accounts[0]});
             await token.approve(feeCollector.address, SUPPLY, {from: accounts[1]});
@@ -63,8 +65,10 @@ contract('FeeCollector', async (accounts) => {
             await feeCollector.retrieveTokensAfterRoundFinished(0);
             await feeCollector.retrieveTokensAfterRoundFinished( 0, {from: accounts[1]});
 
-            assert.equal((await token.balanceOf(accounts[0])).toString(), SUPPLY.div(2).plus(new BigNumber('50').times(new BigNumber('10').pow(8))).toString())
-            assert.equal((await token.balanceOf(accounts[1])).toString(), SUPPLY.div(2).minus(new BigNumber('50').times(new BigNumber('10').pow(8))).toString())
+            assert.equal((await token.balanceOf(accounts[0])).toString(), SUPPLY.div(2).plus(new BigNumber('25').times(new BigNumber('10').pow(8))).toString())
+            assert.equal((await token.balanceOf(accounts[1])).toString(), SUPPLY.div(2).minus(new BigNumber('75').times(new BigNumber('10').pow(8))).toString())
+
+            assert.equal((await token.balanceOf(accounts[2])).toString(), new BigNumber('50').times(new BigNumber('10').pow(8)).toString());
         });
     });
 

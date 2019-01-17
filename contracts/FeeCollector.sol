@@ -19,6 +19,8 @@ contract FeeCollector {
     bool public isThereARoundActive = false;
     uint public tokensToBeDistributed = 0;
 
+    address makerDaoAddress = address(0x0);
+
     constructor(address qTokenAddress) public {
         qToken = QToken(qTokenAddress);
     }
@@ -31,8 +33,12 @@ contract FeeCollector {
     function startRound(uint tokensLocked) public {
         require(isThereARoundActive == false, "There can only be a round active at a time");
         require(tokensToBeDistributed >= 10 * (10 ** 8), "There must be enough tokens to be distributed in a round!");
+        uint tokensToBedistributedForEachParty = tokensToBeDistributed / 2;
+        if(makerDaoAddress != address(0x0)){
+            qToken.transferWithoutFees(makerDaoAddress, tokensToBedistributedForEachParty);
+        }
 
-        DistributionRound memory distributionRound = DistributionRound(now, now + 7 minutes, 0, tokensToBeDistributed, true);
+        DistributionRound memory distributionRound = DistributionRound(now, now + 7 minutes, 0, tokensToBedistributedForEachParty, true);
         tokensToBeDistributed = 0;
         distributionRounds.push(distributionRound);
         isThereARoundActive = true;
@@ -76,5 +82,9 @@ contract FeeCollector {
 
     function getNumberOfRounds() public view returns (uint){
         return distributionRounds.length;
+    }
+
+    function setMakerDaoAddress(address newMakerDaoAddress) public {
+        makerDaoAddress = newMakerDaoAddress;
     }
 }
