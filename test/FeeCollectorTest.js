@@ -69,6 +69,17 @@ contract('FeeCollector', async (accounts) => {
             assert.equal((await token.balanceOf(accounts[1])).toString(), SUPPLY.div(2).minus(new BigNumber('75').times(new BigNumber('10').pow(8))).toString())
 
             assert.equal((await token.balanceOf(accounts[2])).toString(), new BigNumber('50').times(new BigNumber('10').pow(8)).toString());
+            assert.equal(1, await feeCollector.getNumberOfRounds());
+
+        });
+
+        it('full flow with exceptions', async () => {
+            let token = await QToken.new(SUPPLY)
+            let feeCollector = await FeeCollector.new(token.address);
+            await token.setFeeCollectorAddress(feeCollector.address);
+
+
+
         });
     });
 
