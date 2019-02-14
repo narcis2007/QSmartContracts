@@ -1,20 +1,24 @@
 pragma solidity ^0.5.0;
 
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./roles/Ownable.sol";
 import "./FeeCollector.sol";
 import "./ERC20/ERC20Detailed.sol";
 import "./ERC20/ERC20Mintable.sol";
 import "./ERC20/ERC20Burnable.sol";
 
 
-contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
+contract QToken is Initializable, ERC20Detailed, ERC20Burnable, ERC20Mintable, Ownable {
 
-    uint public feeCap = 100 * (10 ** 8);
-    FeeCollector feeCollector = FeeCollector(0x0);
+    uint public feeCap;
+    FeeCollector feeCollector;
 
-    constructor(uint initialAmount) ERC20Detailed("Q", "Q", 8) public {
-        _mint(msg.sender, initialAmount);
+    function initialize(string memory name, uint initialAmount, address owner) public initializer {
+        ERC20Detailed.initialize(name, name, 8);
+        ERC20Mintable.initialize(owner);
+        Ownable.initialize(owner);
+        _mint(owner, initialAmount);
+        feeCap = 100 * (10 ** 8);
     }
 
     function _transfer(address from, address to, uint256 value) internal {
@@ -51,5 +55,7 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
         return true;
     }
 
-
+    function getFeeCollectorAddress() public view returns (address){
+        return address(feeCollector);
+    }
 }

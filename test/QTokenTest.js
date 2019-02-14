@@ -1,16 +1,22 @@
 'use strict';
 
+
 const expectThrow = require('./expectThrow.js')
 const BigNumber = require('bignumber.js')
 var QToken = artifacts.require("QToken");
+var AdminUpgradeabilityProxy = artifacts.require("AdminUpgradeabilityProxy");
 var FeeCollector = artifacts.require("FeeCollector");
-const SUPPLY = new BigNumber('1000000000').times(new BigNumber('10').pow(8));
+const SUPPLY = new BigNumber('10000000000').times(new BigNumber('10').pow(8));
 
-async function deployTokenContract() {
-    return await QToken.new(SUPPLY)
-}
 
 contract('QToken', async (accounts) => {
+    async function deployTokenContract() {
+        var token =  await QToken.new()
+
+        var proxy = await AdminUpgradeabilityProxy.new(token.address, token.contract.methods.initialize("Q",SUPPLY.toString(),accounts[0]).encodeABI());
+        await proxy.changeAdmin(accounts[9]);
+        return QToken.at(proxy.address);
+    }
 
     describe('token details', function() {
 
@@ -78,7 +84,7 @@ contract('QToken', async (accounts) => {
             // transfer SUPPLY from account[0] to account[1]
             await token.transfer(accounts[1], SUPPLY, { from: accounts[0] })
 
-            assert.equal(await token.balanceOf(accounts[1]), (SUPPLY - 100 * Math.pow(10,8)).toString(), "Balance of account 1 incorrect");
+            assert.equal((await token.balanceOf(accounts[1])).toString(), (SUPPLY - 100 * Math.pow(10,8)).toString(), "Balance of account 1 incorrect");
             assert.equal(await token.balanceOf(accounts[0]), 0, "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(feeCollector.address), 100 * Math.pow(10,8), "Balance of fee collector incorrect");
 
@@ -201,7 +207,7 @@ contract('QToken', async (accounts) => {
 
         it('Can not burn more tokens than your balance', async function () {
             let token = await deployTokenContract();
-            let totalSupply = await token.totalSupply();
+            let totalSupply = await token.totalSupply({from:accounts[0]});
             let luckys_burnable_amount = totalSupply + 1;
             await expectThrow(  token.burn(luckys_burnable_amount));
         });

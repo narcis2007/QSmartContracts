@@ -4,15 +4,23 @@ const expectThrow = require('./expectThrow.js');
 const timeTravel = require('./TimeTravel');
 const BigNumber = require('bignumber.js');
 var QToken = artifacts.require("QToken");
+
+var AdminUpgradeabilityProxy = artifacts.require("AdminUpgradeabilityProxy");
 var FeeCollector = artifacts.require("FeeCollector");
-const SUPPLY = new BigNumber('1000000000').times(new BigNumber('10').pow(8));
+const SUPPLY = new BigNumber('10000000000').times(new BigNumber('10').pow(8));
 
 contract('FeeCollector', async (accounts) => {
+    async function deployTokenContract() {
+        var token =  await QToken.new()
+        var proxy = await AdminUpgradeabilityProxy.new(token.address, token.contract.methods.initialize("Q",SUPPLY.toString(),accounts[0]).encodeABI());
+        await proxy.changeAdmin(accounts[9]);
+        return QToken.at(proxy.address);
+    }
 
     describe('notice', function() {
 
         it('should give the right amount of fees collected', async () => {
-            let token = await QToken.new(SUPPLY)
+            let token = await deployTokenContract()
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
@@ -26,11 +34,11 @@ contract('FeeCollector', async (accounts) => {
         });
 
         it('should only allow the given token address to call it', async () => {
-            let token = await QToken.new(SUPPLY)
+            let token = await deployTokenContract()
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
-            let token2 = await QToken.new(SUPPLY)
+            let token2 = await deployTokenContract()
             await token2.setFeeCollectorAddress(feeCollector.address);
 
             await expectThrow( token2.transfer(accounts[1], 1000, {from: accounts[0]}))
@@ -40,7 +48,7 @@ contract('FeeCollector', async (accounts) => {
     describe('rounds', function() {
 
         it('full flow', async () => {
-            let token = await QToken.new(SUPPLY)
+            let token = await await deployTokenContract()
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
@@ -74,7 +82,7 @@ contract('FeeCollector', async (accounts) => {
         });
 
         it('full flow with exceptions', async () => {
-            let token = await QToken.new(SUPPLY)
+            let token = await await deployTokenContract()
             let feeCollector = await FeeCollector.new(token.address);
             await token.setFeeCollectorAddress(feeCollector.address);
 
