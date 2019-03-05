@@ -12,6 +12,7 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
 
     uint public feeCap = 100 * (10 ** 8);
     FeeCollector feeCollector = FeeCollector(0x0);
+    address paymentProcessorAddress;
 
     constructor(uint initialAmount) ERC20Detailed("Q", "Q", 8) public {
         _mint(msg.sender, initialAmount);
@@ -49,6 +50,26 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
     function transferWithoutFees(address to, uint256 value) onlyFeeCollector public returns (bool) {
         super._transfer(msg.sender, to, value);
         return true;
+    }
+
+    modifier onlyPaymentProcessor() {
+        require(msg.sender == paymentProcessorAddress);
+        _;
+    }
+
+    /**
+     * @dev The function which lets the payment processor to transfer tokens from one address to another.
+     * @param from address The address which you want to send tokens from
+     * @param to address The address which you want to transfer to
+     * @param value uint256 the amount of tokens to be transferred
+     */
+    function paymentProcessorTransferFrom(address from, address to, uint256 value) onlyPaymentProcessor public returns (bool) {
+        _transfer(from, to, value);
+        return true;
+    }
+
+    function setPaymentProcessorAddress(address _paymentProcessorAddress) onlyOwner public {
+        paymentProcessorAddress = _paymentProcessorAddress;
     }
 
 
