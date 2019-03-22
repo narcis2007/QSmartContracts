@@ -1,1 +1,1 @@
-# QSmartContracts
+Minimal code to enable the token holders/users to buy stuff from merchants with tokens even if they don't have any ETH in their wallet so non-crypto users can use crypto easily this way. The merchants will pay for the transaction fees so they will have control over their costs.
