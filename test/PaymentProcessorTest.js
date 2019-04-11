@@ -24,7 +24,7 @@ contract('PaymentProcessor', async (accounts) => {
         it('should allow people to buy from merchants with no ETH and only tokens', async function() {
             let token = await deployTokenContract();
             let paymentProcessor = await PaymentProcessor.new(token.address);
-            await token.setPaymentProcessorAddress(paymentProcessor.address);
+            await token.approvePaymentProcessorAddress(paymentProcessor.address);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
@@ -34,20 +34,20 @@ contract('PaymentProcessor', async (accounts) => {
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.div(2).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).toString(), "Balance of buyer incorrect");
             // assert.equal(await myWeb3.eth.getBalance(accounts[0]),"0", "buyer should have no ETH");
-
-            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something"},{t: 'uint256', v: SUPPLY.div(2).toString()}  ));
+            let timestamp = new Date().getTime();
+            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
 
             var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign));
             var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(),signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'))
+            await paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'))
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), "0", "Balance of buyer incorrect");
 
-            await expectThrow( paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(),signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex')))
+            await expectThrow( paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex')))
 
         });
 
