@@ -4,6 +4,8 @@ const expectThrow = require('./expectThrow.js')
 const BigNumber = require('bignumber.js')
 var QToken = artifacts.require("QToken");
 var PaymentProcessor = artifacts.require("PaymentProcessor");
+var DiscountManager = artifacts.require("DiscountManager");
+
 var EthUtil = require('ethereumjs-util');
 const Web3 = require("web3")
 
@@ -23,7 +25,8 @@ contract('PaymentProcessor', async (accounts) => {
 
         it('should allow people to buy from merchants with no ETH and only tokens', async function() {
             let token = await deployTokenContract();
-            let paymentProcessor = await PaymentProcessor.new(token.address);
+            let discountManager = await DiscountManager.new(token.address)
+            let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
             await token.approvePaymentProcessorAddress(paymentProcessor.address);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
@@ -42,12 +45,31 @@ contract('PaymentProcessor', async (accounts) => {
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'))
+            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10)
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), "0", "Balance of buyer incorrect");
 
-            await expectThrow( paymentProcessor.processPayment(accounts[0], "something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex')))
+            await expectThrow( paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10))
+
+            //TODO: make another purchase and check for discount
+
+            await token.transfer(buyerAddress, SUPPLY.div(2), { from: accounts[0] });
+
+            timestamp = new Date().getTime();
+            const messageToSign2 = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something else"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
+
+            var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign2));
+            var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
+            console.log('v: ' + signature.v.toString())
+            console.log('r: 0x' + signature.r.toString('hex'))
+            console.log('s: 0x' + signature.s.toString('hex'))
+            await paymentProcessor.processPayment("something else", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0)
+
+            assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(10)).toString(), "Balance of account 0 incorrect");
+            assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(10).toString(), "Balance of buyer incorrect");
+
+
 
         });
 

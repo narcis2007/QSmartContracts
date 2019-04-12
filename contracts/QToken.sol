@@ -66,13 +66,12 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
      * @param value uint256 the amount of tokens to be transferred
      * @param paymentDetailsHash bytes32 the hash of the payment details, to make sure that there are no duplicated transactions
      */
-    function paymentProcessorTransferFrom(address from, address to, uint256 value, bytes32 paymentDetailsHash) onlyPaymentProcessor public returns (bool) {
+    function paymentProcessorTransferFrom(address from, address to, uint256 value, bytes32 paymentDetailsHash) onlyPaymentProcessor public {
         require(externallyProcessedPaymentDetailsHash[paymentDetailsHash] == false);
 
         _transfer(from, to, value);
 
         externallyProcessedPaymentDetailsHash[paymentDetailsHash] = true;
-        return true;
     }
 
     function approvePaymentProcessorAddress(address paymentProcessorAddress) onlyOwner public {
@@ -81,6 +80,10 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
 
     function revokePaymentProcessorAddress(address paymentProcessorAddress) onlyOwner public {
         approvedPaymentProcessors[paymentProcessorAddress] = false;
+    }
+
+    function isApprovedPaymentProcessor(address who) public view returns(bool) {
+        return approvedPaymentProcessors[who];
     }
 
 }
