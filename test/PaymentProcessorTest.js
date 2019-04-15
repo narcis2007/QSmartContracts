@@ -73,6 +73,35 @@ contract('PaymentProcessor', async (accounts) => {
 
         });
 
+        it('should give a referral discount the first time for both the buyer and advertiser', async function() {
+            let token = await deployTokenContract();
+            let discountManager = await DiscountManager.new(token.address)
+            let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
+            await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
+            const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
+
+            await token.transfer(buyerAddress, SUPPLY.div(2), { from: accounts[0] });
+
+            let timestamp = new Date().getTime();
+            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
+
+            var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign));
+            var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
+            console.log('v: ' + signature.v.toString())
+            console.log('r: 0x' + signature.r.toString('hex'))
+            console.log('s: 0x' + signature.s.toString('hex'))
+            console.log(accounts[9]);
+            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, accounts[9])
+
+            assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(20)).toString(), "Balance of account 0 incorrect");
+            assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(20).toString(), "Balance of buyer incorrect");
+
+
+
+        });
+
     });
 
 });

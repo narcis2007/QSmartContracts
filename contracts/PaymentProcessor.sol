@@ -18,6 +18,7 @@ contract PaymentProcessor {
     /**
     * the merchant submits the customer proof through this function to pull the tokens in his address
     * msg.sender is the merchant address
+    * TODO: see if it's worth adding the referring address in the signature
     **/
     function processPayment(string memory product, uint256 price, uint256 timestamp, uint8 v, bytes32 r, bytes32 s, uint nextLoyaltyDiscountPercentage, address referringAddress) public {
         bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(msg.sender, product, price, timestamp))));
@@ -29,10 +30,13 @@ contract PaymentProcessor {
 
         //TODO: move all discounts in that smart contract and here do only a get global discount
         price = price - discountManager.getLoyaltyDiscountInTokens(buyerAddress, msg.sender, price);
-        price = price - discountManager.getReferralDiscountInTokens(buyerAddress, price);
+        price = price - discountManager.getAdvertiserReferralDiscountInTokens(buyerAddress, price);
+        discountManager.consumeAdvertiserReferralDiscount(buyerAddress);
 
-        discountManager.consumeReferralDiscount(buyerAddress);
-
+        if(referringAddress != address(0x0)){
+            price = price - discountManager.getBuyerReferralDiscountInTokens(buyerAddress, price);
+            discountManager.consumeBuyerReferralDiscount(buyerAddress);
+        }
 
         token.paymentProcessorTransferFrom(buyerAddress, msg.sender, price, hash);
         //check for a 0 discount maybe it saves more gas overall?

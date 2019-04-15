@@ -7,8 +7,9 @@ contract DiscountManager is Ownable {
 
     //merchant address => buyer address => discount percentage
     mapping(address => mapping(address => uint)) loyaltyDiscountPercentage;
-
     mapping(address => uint) advertiserAcquiredDiscount;
+
+    mapping(address => bool) firstTimeReferralBuyerDiscountRedeemed;
 
     //maybe make it a mapping, each user to be able to have a personalized discount instead of a global one?
     uint buyerReferralDiscountPercentage = 5; // 5%
@@ -24,11 +25,15 @@ contract DiscountManager is Ownable {
         advertiserAcquiredDiscount[referringAddress] = advertiserReferralDiscountPercentage;
     }
 
-    function consumeReferralDiscount(address who) public onlyPaymentProcessor {
+    function consumeAdvertiserReferralDiscount(address who) public onlyPaymentProcessor {
         advertiserAcquiredDiscount[who] = 0;
     }
 
-    function getReferralDiscountInTokens(address who, uint price) public view returns (uint) {
+    function consumeBuyerReferralDiscount(address who) public onlyPaymentProcessor {
+        firstTimeReferralBuyerDiscountRedeemed[who] = true;
+    }
+
+    function getAdvertiserReferralDiscountInTokens(address who, uint price) public view returns (uint) {
         return (price * advertiserAcquiredDiscount[who]) / 100;
     }
 
@@ -36,12 +41,13 @@ contract DiscountManager is Ownable {
         loyaltyDiscountPercentage[merchantAddress][buyerAddress] = nextLoyaltyDiscountPercentage;
     }
 
-
     function getLoyaltyDiscountInTokens(address buyerAddress, address merchantAddress, uint price) public view returns (uint) {
         return (price * loyaltyDiscountPercentage[merchantAddress][buyerAddress]) / 100;
     }
 
-    function getBuyerReferralDiscountInTokens(uint price) public view returns (uint){
+    function getBuyerReferralDiscountInTokens(address buyer, uint price) public view returns (uint){
+        if (firstTimeReferralBuyerDiscountRedeemed[buyer] == true)
+            return 0;
         return (price * buyerReferralDiscountPercentage) / 100;
     }
 
