@@ -98,7 +98,7 @@ contract('PaymentProcessor', async (accounts) => {
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(20)).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(20).toString(), "Balance of buyer incorrect");
 
-            assert.equal(discountManager.getAdvertiserReferralDiscountInTokens(accounts[9], 100),10)
+            assert.equal(await discountManager.getAdvertiserReferralDiscountInTokens(accounts[9], 100),10)
 
         });
 
