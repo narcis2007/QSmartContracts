@@ -45,12 +45,12 @@ contract('PaymentProcessor', async (accounts) => {
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10)
+            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000')
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), "0", "Balance of buyer incorrect");
 
-            await expectThrow( paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10))
+            await expectThrow( paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000'))
 
             //TODO: make another purchase and check for discount
 
@@ -64,7 +64,7 @@ contract('PaymentProcessor', async (accounts) => {
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment("something else", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0)
+            await paymentProcessor.processPayment("something else", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, '0x0000000000000000000000000000000000000000')
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(10)).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(10).toString(), "Balance of buyer incorrect");
