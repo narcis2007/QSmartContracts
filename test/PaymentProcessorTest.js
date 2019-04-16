@@ -23,7 +23,7 @@ contract('PaymentProcessor', async (accounts) => {
 
     describe('payments', function () {
 
-        it('should allow people to buy from merchants with no ETH and only tokens', async function() {
+        it('should allow people to buy from merchants with no ETH and only tokens', async function () {
             let token = await deployTokenContract();
             let discountManager = await DiscountManager.new(token.address)
             let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
@@ -32,48 +32,59 @@ contract('PaymentProcessor', async (accounts) => {
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
 
-            await token.transfer(buyerAddress, SUPPLY.div(2), { from: accounts[0] });
+            await token.transfer(buyerAddress, SUPPLY.div(2), {from: accounts[0]});
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.div(2).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).toString(), "Balance of buyer incorrect");
             // assert.equal(await myWeb3.eth.getBalance(accounts[0]),"0", "buyer should have no ETH");
             let timestamp = new Date().getTime();
-            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
+            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: accounts[0]
+            }, {t: 'uint256', v: SUPPLY.div(2).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+                t: 'address',
+                v: '0x0000000000000000000000000000000000000000'
+            }));
 
             var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign));
             var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000')
+            await paymentProcessor.processPayment(SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000')
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), "0", "Balance of buyer incorrect");
 
-            await expectThrow( paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000'))
+            await expectThrow(paymentProcessor.processPayment(SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 10, '0x0000000000000000000000000000000000000000'))
 
             //TODO: make another purchase and check for discount
 
-            await token.transfer(buyerAddress, SUPPLY.div(2), { from: accounts[0] });
+            await token.transfer(buyerAddress, SUPPLY.div(2), {from: accounts[0]});
 
             timestamp = new Date().getTime();
-            const messageToSign2 = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something else"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
+            const messageToSign2 = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: accounts[0]
+            }, {t: 'uint256', v: SUPPLY.div(2).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+                t: 'address',
+                v: '0x0000000000000000000000000000000000000000'
+            }));
 
             var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign2));
             var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
             console.log('v: ' + signature.v.toString())
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
-            await paymentProcessor.processPayment("something else", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, '0x0000000000000000000000000000000000000000')
+            await paymentProcessor.processPayment(SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, '0x0000000000000000000000000000000000000000')
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(10)).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(10).toString(), "Balance of buyer incorrect");
 
 
-
         });
 
-        it('should give a referral discount the first time for both the buyer and advertiser', async function() {
+        it('should give a referral discount the first time for both the buyer and advertiser', async function () {
             let token = await deployTokenContract();
             let discountManager = await DiscountManager.new(token.address)
             let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
@@ -82,10 +93,16 @@ contract('PaymentProcessor', async (accounts) => {
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
 
-            await token.transfer(buyerAddress, SUPPLY.div(2), { from: accounts[0] });
+            await token.transfer(buyerAddress, SUPPLY.div(2), {from: accounts[0]});
 
             let timestamp = new Date().getTime();
-            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'address', v: accounts[0]},{t: 'string', v: "something"},{t: 'uint256', v: SUPPLY.div(2).toString()},{t: 'uint256', v: timestamp.toString()}  ));
+            const messageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: accounts[0]
+            }, {t: 'uint256', v: SUPPLY.div(2).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+                t: 'address',
+                v: accounts[9]
+            }));
 
             var msgHash = EthUtil.hashPersonalMessage(new Buffer(messageToSign));
             var signature = EthUtil.ecsign(msgHash, new Buffer(buyerPrivateKey, 'hex'));
@@ -93,13 +110,67 @@ contract('PaymentProcessor', async (accounts) => {
             console.log('r: 0x' + signature.r.toString('hex'))
             console.log('s: 0x' + signature.s.toString('hex'))
             console.log(accounts[9]);
-            await paymentProcessor.processPayment("something", SUPPLY.div(2).toString(), timestamp,signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, accounts[9])
+            await paymentProcessor.processPayment(SUPPLY.div(2).toString(), timestamp, signature.v.toString(), '0x' + signature.r.toString('hex'), '0x' + signature.s.toString('hex'), 0, accounts[9])
 
             assert.equal(await token.balanceOf(accounts[0]), SUPPLY.minus(SUPPLY.div(2).div(20)).toString(), "Balance of account 0 incorrect");
             assert.equal(await token.balanceOf(buyerAddress), SUPPLY.div(2).div(20).toString(), "Balance of buyer incorrect");
 
-            assert.equal(await discountManager.getAdvertiserReferralDiscountInTokens(accounts[9], 100),10)
+            assert.equal(await discountManager.getAdvertiserReferralDiscountInTokens(accounts[9], 100), 10)
 
+        });
+
+        it('should let a third party mediate transfers between merchants and buyers with no ETH', async function () {
+            let token = await deployTokenContract();
+            let discountManager = await DiscountManager.new(token.address)
+            let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
+            await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
+            const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
+
+            const merchantAddress = '0x072620c80A727f51B3547716a81cf806D773Db2f';
+            const merchantPrivateKey = '10c135c542170eb2381878977d1070c8b1eab7da0d4890090d5df98c9456e657';
+
+            await token.transfer(buyerAddress, SUPPLY.div(10), {from: accounts[0]});
+            await token.transfer(merchantAddress, SUPPLY.div(10), {from: accounts[0]});
+
+            let timestamp = new Date().getTime();
+            const buyerMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: merchantAddress
+            }, {t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+                t: 'address',
+                v: '0x0000000000000000000000000000000000000000'
+            }));
+
+            var msgHashBuyer = EthUtil.hashPersonalMessage(new Buffer(buyerMessageToSign));
+            var signatureBuyer = EthUtil.ecsign(msgHashBuyer, new Buffer(buyerPrivateKey, 'hex'));
+            // console.log('v: ' + signatureBuyer.v.toString())
+            // console.log('r: 0x' + signatureBuyer.r.toString('hex'))
+            // console.log('s: 0x' + signatureBuyer.s.toString('hex'))
+
+            const merchantMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: buyerAddress
+            }, {t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+                t: 'uint256',
+                v: '0'
+            }, {t: 'address', v: '0x0000000000000000000000000000000000000000'}));
+
+            var msgHashMerchant = EthUtil.hashPersonalMessage(new Buffer(merchantMessageToSign));
+            var signatureMerchant = EthUtil.ecsign(msgHashMerchant, new Buffer(merchantPrivateKey, 'hex'));
+            // console.log('v: ' + signatureBuyer.v.toString())
+            // console.log('r: 0x' + signatureBuyer.r.toString('hex'))
+            // console.log('s: 0x' + signatureBuyer.s.toString('hex'))
+
+            await paymentProcessor.processPaymentThirdPartyPaysForGas(merchantAddress, SUPPLY.div(10).toString(), timestamp, [signatureBuyer.v.toString(), signatureMerchant.v.toString()], ['0x' + signatureBuyer.r.toString('hex'), '0x' + signatureBuyer.s.toString('hex'), '0x' + signatureMerchant.r.toString('hex'), '0x' + signatureMerchant.s.toString('hex')], 0, '0x0000000000000000000000000000000000000000', buyerAddress,
+                {from: accounts[1]})
+
+            assert.equal(await token.balanceOf(accounts[1]), '10000000', "Balance of third party incorrect");
+            assert.equal(await token.balanceOf(buyerAddress), '0', "Balance of buyer incorrect");
+            assert.equal(await token.balanceOf(merchantAddress), SUPPLY.div(5).minus(10000000).toString(), "Balance of merchant incorrect");
+
+            //TODO: check fee for third party
         });
 
     });
