@@ -63,7 +63,7 @@ contract PaymentProcessor {
         require(buyerAddressFromSignature != referringAddress);
         require(buyerAddressFromSignature == buyerAddress);
 
-        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(buyerAddress, price, timestamp, nextLoyaltyDiscountPercentage, referringAddress))));
+        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(buyerAddress, price, timestamp, nextLoyaltyDiscountPercentage))));
         require(ecrecover(merchantHash, v[1], rs[2], rs[3]) == merchantAddress);
 
 

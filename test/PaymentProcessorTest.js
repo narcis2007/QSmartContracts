@@ -155,7 +155,7 @@ contract('PaymentProcessor', async (accounts) => {
             }, {t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: timestamp.toString()}, {
                 t: 'uint256',
                 v: '0'
-            }, {t: 'address', v: '0x0000000000000000000000000000000000000000'}));
+            }));
 
             var msgHashMerchant = EthUtil.hashPersonalMessage(new Buffer(merchantMessageToSign));
             var signatureMerchant = EthUtil.ecsign(msgHashMerchant, new Buffer(merchantPrivateKey, 'hex'));
