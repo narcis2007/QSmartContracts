@@ -149,10 +149,7 @@ contract('PaymentProcessor', async (accounts) => {
             // console.log('r: 0x' + signatureBuyer.r.toString('hex'))
             // console.log('s: 0x' + signatureBuyer.s.toString('hex'))
 
-            const merchantMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
-                t: 'address',
-                v: buyerAddress
-            }, {t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: timestamp.toString()}, {
+            const merchantMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: timestamp.toString()}, {
                 t: 'uint256',
                 v: '0'
             }));
@@ -169,8 +166,6 @@ contract('PaymentProcessor', async (accounts) => {
             assert.equal(await token.balanceOf(accounts[1]), '10000000', "Balance of third party incorrect");
             assert.equal(await token.balanceOf(buyerAddress), '0', "Balance of buyer incorrect");
             assert.equal(await token.balanceOf(merchantAddress), SUPPLY.div(5).minus(10000000).toString(), "Balance of merchant incorrect");
-
-            //TODO: check fee for third party
         });
 
     });

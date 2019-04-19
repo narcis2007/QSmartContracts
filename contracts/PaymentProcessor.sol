@@ -49,7 +49,6 @@ contract PaymentProcessor {
 
     /**
     * a third party submits both the customer and merchant signature and pays for the gas, in exchange the merchant rewards him with a few tokens to cover the ETH fee
-    * TODO: see if it's worth adding the referring address in the signatures
     * v[0] - customer; v[1] - merchant
     * rs[0] - rCustomer; rs[1] - sCustomer; rs[2] - rMerchant; rs[3] - sMerchant
     **/
@@ -63,7 +62,7 @@ contract PaymentProcessor {
         require(buyerAddressFromSignature != referringAddress);
         require(buyerAddressFromSignature == buyerAddress);
 
-        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(buyerAddress, price, timestamp, nextLoyaltyDiscountPercentage))));
+        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(price, timestamp, nextLoyaltyDiscountPercentage))));
         require(ecrecover(merchantHash, v[1], rs[2], rs[3]) == merchantAddress);
 
 
