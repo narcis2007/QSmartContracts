@@ -1,6 +1,5 @@
 pragma solidity ^0.5.0;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./QToken.sol";
 
 contract DiscountManager is Ownable {
@@ -11,15 +10,12 @@ contract DiscountManager is Ownable {
 
     mapping(address => bool) firstTimeReferralBuyerDiscountRedeemed;
 
+    mapping (address => bool) approvedPaymentProcessors; // TODO: abstract this in a new contract or as an inherited contract between the token and this one
+
     //maybe make it a mapping, each user to be able to have a personalized discount instead of a global one?
     uint buyerReferralDiscountPercentage = 5; // 5%
     uint advertiserReferralDiscountPercentage = 10; // 10%
 
-    QToken token;
-
-    constructor(address tokenAddress) public {
-        token = QToken(tokenAddress);
-    }
 
     function acknowledgeReferralPurchase(address referringAddress) public onlyPaymentProcessor {
         advertiserAcquiredDiscount[referringAddress] = advertiserReferralDiscountPercentage;
@@ -52,7 +48,15 @@ contract DiscountManager is Ownable {
     }
 
     modifier onlyPaymentProcessor() {
-        require(token.isApprovedPaymentProcessor(msg.sender));
+        require(approvedPaymentProcessors[msg.sender]);
         _;
+    }
+
+    function approvePaymentProcessorAddress(address paymentProcessorAddress) onlyOwner public {
+        approvedPaymentProcessors[paymentProcessorAddress] = true;
+    }
+
+    function revokePaymentProcessorAddress(address paymentProcessorAddress) onlyOwner public {
+        approvedPaymentProcessors[paymentProcessorAddress] = false;
     }
 }

@@ -25,9 +25,11 @@ contract('PaymentProcessor', async (accounts) => {
 
         it('should allow people to buy from merchants with no ETH and only tokens', async function () {
             let token = await deployTokenContract();
-            let discountManager = await DiscountManager.new(token.address)
+            let discountManager = await DiscountManager.new()
             let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
             await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            await discountManager.approvePaymentProcessorAddress(paymentProcessor.address);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
@@ -86,9 +88,11 @@ contract('PaymentProcessor', async (accounts) => {
 
         it('should give a referral discount the first time for both the buyer and advertiser', async function () {
             let token = await deployTokenContract();
-            let discountManager = await DiscountManager.new(token.address)
+            let discountManager = await DiscountManager.new()
             let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
             await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            await discountManager.approvePaymentProcessorAddress(paymentProcessor.address);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
@@ -121,9 +125,11 @@ contract('PaymentProcessor', async (accounts) => {
 
         it('should let a third party mediate transfers between merchants and buyers with no ETH', async function () {
             let token = await deployTokenContract();
-            let discountManager = await DiscountManager.new(token.address)
+            let discountManager = await DiscountManager.new()
             let paymentProcessor = await PaymentProcessor.new(token.address, discountManager.address);
             await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            await discountManager.approvePaymentProcessorAddress(paymentProcessor.address);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';

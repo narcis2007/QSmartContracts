@@ -1,11 +1,11 @@
 pragma solidity ^0.5.0;
 
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./FeeCollector.sol";
 import "./ERC20/ERC20Detailed.sol";
 import "./ERC20/ERC20Mintable.sol";
 import "./ERC20/ERC20Burnable.sol";
+import "./roles/Ownable.sol";
 
 
 contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
@@ -13,7 +13,7 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
     uint public feeCap = 100 * (10 ** 8);
     FeeCollector feeCollector = FeeCollector(0x0);
 
-    mapping (address => bool) approvedPaymentProcessors;
+    mapping(address => bool) approvedPaymentProcessors;
     mapping(bytes32 => bool) externallyProcessedPaymentDetailsHash;
 
     constructor(uint initialAmount) ERC20Detailed("Q", "Q", 8) public {
@@ -54,11 +54,6 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
         return true;
     }
 
-    modifier onlyPaymentProcessor() {
-        require(approvedPaymentProcessors[msg.sender]);
-        _;
-    }
-
     /**
      * @dev The function which lets the payment processor to transfer tokens from one address to another.
      * @param from address The address which you want to send tokens from
@@ -82,8 +77,13 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
         approvedPaymentProcessors[paymentProcessorAddress] = false;
     }
 
-    function isApprovedPaymentProcessor(address who) public view returns(bool) {
+    function isApprovedPaymentProcessor(address who) public view returns (bool) {
         return approvedPaymentProcessors[who];
+    }
+
+    modifier onlyPaymentProcessor() {
+        require(approvedPaymentProcessors[msg.sender]);
+        _;
     }
 
 }

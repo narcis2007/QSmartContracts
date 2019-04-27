@@ -10,6 +10,9 @@ contract PaymentProcessor {
     uint thirdPartyFeeInTokens = 1 * (10 ** 7);// 0.1 QS/USD
 
     event Purchase(address buyer, address seller, address advertiser);//maybe add other fields too
+    event StepCompleted(string which);
+    event PriceResult(uint result);
+    event SignatureAddress(address sigAddr);
 
     constructor(address tokenAddress, address discountManagerAddress) public {
         token = QToken(tokenAddress);
@@ -58,23 +61,34 @@ contract PaymentProcessor {
 
         // Get the buyerAddress which signed the message
         address buyerAddressFromSignature = ecrecover(buyerHash, v[0], rs[0], rs[1]);
+
+        emit SignatureAddress(buyerAddressFromSignature);
+        emit SignatureAddress(buyerAddress);
+
         require(buyerAddressFromSignature != address(0x0), 'buyerAddress is not valid!');
-        require(buyerAddressFromSignature != referringAddress);
+        require(buyerAddressFromSignature != referringAddress, "buyer address must be different than the referring one");
         require(buyerAddressFromSignature == buyerAddress);
 
-        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(price, timestamp, nextLoyaltyDiscountPercentage))));
-        require(ecrecover(merchantHash, v[1], rs[2], rs[3]) == merchantAddress);
 
+        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(price, timestamp, nextLoyaltyDiscountPercentage))));
+        require(ecrecover(merchantHash, v[1], rs[2], rs[3]) == merchantAddress, "wrong merchant address");
 
         //TODO: move all discounts in that smart contract and here do only a get global discount
         price = price - discountManager.getLoyaltyDiscountInTokens(buyerAddress, merchantAddress, price);
+        emit PriceResult(price);
+        emit StepCompleted("getLoyaltyDiscountInTokens");
         //TODO: add the discounts then substract from the total price?
         price = price - discountManager.getAdvertiserReferralDiscountInTokens(buyerAddress, price);
+        emit PriceResult(price);
+        emit StepCompleted("getAdvertiserReferralDiscountInTokens");
         discountManager.consumeAdvertiserReferralDiscount(buyerAddress);
+        emit StepCompleted("consumeAdvertiserReferralDiscount");
 
         if (referringAddress != address(0x0)) {
             price = price - discountManager.getBuyerReferralDiscountInTokens(buyerAddress, price);
+            emit StepCompleted("getBuyerReferralDiscountInTokens");
             discountManager.consumeBuyerReferralDiscount(buyerAddress);
+            emit StepCompleted("consumeBuyerReferralDiscount");
         }
 
         token.paymentProcessorTransferFrom(buyerAddress, merchantAddress, price, buyerHash);
