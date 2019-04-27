@@ -1,6 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "./QToken.sol";
+import "./math/SafeMath.sol";
 
 contract FeeCollector {
     using SafeMath for uint;

@@ -85,6 +85,24 @@ contract('QToken', async (accounts) => {
 
         });
 
+        it('should let only the payment processor to perform special transfers', async function() {
+            let token = await deployTokenContract();
+            let hash = "0x6466626466646668646668646668646668646666666666666666666868686866";
+            await expectThrow( token.paymentProcessorTransferFrom(accounts[1], accounts[2], SUPPLY, hash, { from: accounts[0] }));
+
+            await token.transfer(accounts[1], SUPPLY, { from: accounts[0] })
+
+            await token.approvePaymentProcessorAddress(accounts[0]);
+
+            await token.paymentProcessorTransferFrom(accounts[1], accounts[2], SUPPLY, hash, { from: accounts[0] });
+
+            assert.equal(await token.balanceOf(accounts[2]), SUPPLY.toString(), "Balance of account 2 incorrect");
+            assert.equal(await token.balanceOf(accounts[0]), 0, "Balance of account 0 incorrect");
+            assert.equal(await token.balanceOf(accounts[1]), 0, "Balance of account 1 incorrect");
+
+
+        });
+
     });
 
     describe('token distribution', function () {
