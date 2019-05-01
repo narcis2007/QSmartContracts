@@ -41,7 +41,7 @@ contract PaymentProcessor {
 
         token.paymentProcessorTransferFrom(buyerAddress, msg.sender, price, hash);
         //check for a 0 discount maybe it saves more gas overall?
-        discountManager.setNextLoyaltyDiscountPercentage(buyerAddress, msg.sender, nextLoyaltyDiscountPercentage);
+        discountManager.setNextLoyaltyDiscountPercentage(buyerAddress, msg.sender, nextLoyaltyDiscountPercentage, 0);
         discountManager.acknowledgeReferralPurchase(referringAddress);
 
         emit Purchase(buyerAddress, msg.sender, referringAddress);
@@ -52,9 +52,10 @@ contract PaymentProcessor {
     * v[0] - customer; v[1] - merchant
     * rs[0] - rCustomer; rs[1] - sCustomer; rs[2] - rMerchant; rs[3] - sMerchant
     **/
-    function processPaymentThirdPartyPaysForGas(address merchantAddress, uint256 price, uint256 timestamp, uint8[] memory v, bytes32[] memory rs, uint nextLoyaltyDiscountPercentage, address referringAddress, address buyerAddress) public {
+    //TODO: arrange these parameters so that they make more sense
+    function processPaymentThirdPartyPaysForGas(address merchantAddress, uint256 price, uint256 orderTimestampInMS, uint256 loyaltyDiscountExpirationTimestamp, uint8[] memory v, bytes32[] memory rs, uint nextLoyaltyDiscountPercentage, address referringAddress, address buyerAddress) public {
 
-        bytes32 buyerHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(merchantAddress, price, timestamp, referringAddress))));
+        bytes32 buyerHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(merchantAddress, price, orderTimestampInMS, referringAddress))));
 
         // Get the buyerAddress which signed the message
         address buyerAddressFromSignature = ecrecover(buyerHash, v[0], rs[0], rs[1]);
@@ -63,7 +64,7 @@ contract PaymentProcessor {
         require(buyerAddressFromSignature != referringAddress, "buyer address must be different than the referring one");
         require(buyerAddressFromSignature == buyerAddress);
 
-        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(price, timestamp, nextLoyaltyDiscountPercentage))));
+        bytes32 merchantHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(price, orderTimestampInMS, nextLoyaltyDiscountPercentage, loyaltyDiscountExpirationTimestamp))));
         require(ecrecover(merchantHash, v[1], rs[2], rs[3]) == merchantAddress, "wrong merchant address");
 
         //TODO: move all discounts in that smart contract and here do only a get global discount
@@ -79,7 +80,7 @@ contract PaymentProcessor {
 
         token.paymentProcessorTransferFrom(buyerAddress, merchantAddress, price, buyerHash);
         //check for a 0 discount maybe it saves more gas overall?
-        discountManager.setNextLoyaltyDiscountPercentage(buyerAddress, merchantAddress, nextLoyaltyDiscountPercentage);
+        discountManager.setNextLoyaltyDiscountPercentage(buyerAddress, merchantAddress, nextLoyaltyDiscountPercentage, loyaltyDiscountExpirationTimestamp);
         discountManager.acknowledgeReferralPurchase(referringAddress);
         token.paymentProcessorTransferFrom(merchantAddress, msg.sender, thirdPartyFeeInTokens, merchantHash);
 
