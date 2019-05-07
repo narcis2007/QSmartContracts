@@ -14,7 +14,7 @@ contract QToken is ERC20Detailed, ERC20Mintable, ERC20Burnable, Ownable {
     FeeCollector feeCollector = FeeCollector(0x0);
 
     mapping(address => bool) approvedPaymentProcessors;
-    mapping(bytes32 => bool) externallyProcessedPaymentDetailsHash;
+    mapping(bytes32 => bool) externallyProcessedPaymentDetailsHash; // TODO: must be the hash of all parameters received to prevent double spending; must be enforced by the governance
 
     constructor(uint initialAmount) ERC20Detailed("Q", "Q", 8) public {
         _mint(msg.sender, initialAmount);
