@@ -6,8 +6,12 @@ const BigNumber = require('bignumber.js')
 var QToken = artifacts.require("QToken");
 var PaymentProcessor = artifacts.require("PaymentProcessor");
 var PaymentProcessor_v1 = artifacts.require("PaymentProcessor_v1");
+var PaymentProcessor_v2 = artifacts.require("PaymentProcessor_v2");
 var Proxy = artifacts.require("AdminUpgradeabilityProxy");
 var DiscountManager = artifacts.require("DiscountManager");
+var Governance = artifacts.require("QExecutiveGovernance");
+
+var abi = require('ethereumjs-abi')
 
 var EthUtil = require('ethereumjs-util');
 const Web3 = require("web3")
@@ -194,6 +198,85 @@ contract('PaymentProcessor', async (accounts) => {
             await token.approvePaymentProcessorAddress(paymentProcessor.address);
 
             await discountManager.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
+            const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';
+
+            const merchantAddress = '0x072620c80A727f51B3547716a81cf806D773Db2f';
+            const merchantPrivateKey = '10c135c542170eb2381878977d1070c8b1eab7da0d4890090d5df98c9456e657';
+
+            await token.transfer(buyerAddress, SUPPLY.div(10), {from: accounts[0]});
+            await token.transfer(merchantAddress, SUPPLY.div(10), {from: accounts[0]});
+
+            let orderTimestamp = new Date().getTime();
+
+            const buyerMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'address',
+                v: merchantAddress
+            }, {t: 'uint256', v: SUPPLY.div(10).toString()}, {t: 'uint256', v: orderTimestamp.toString()}, {
+                t: 'address',
+                v: '0x0000000000000000000000000000000000000000'
+            }));
+
+            var msgHashBuyer = EthUtil.hashPersonalMessage(new Buffer(buyerMessageToSign));
+            var signatureBuyer = EthUtil.ecsign(msgHashBuyer, new Buffer(buyerPrivateKey, 'hex'));
+            // console.log('v: ' + signatureBuyer.v.toString())
+            // console.log('r: 0x' + signatureBuyer.r.toString('hex'))
+            // console.log('s: 0x' + signatureBuyer.s.toString('hex'))
+
+            const merchantMessageToSign = EthUtil.toBuffer(myWeb3.utils.soliditySha3({
+                t: 'uint256',
+                v: SUPPLY.div(10).toString()
+            }, {t: 'uint256', v: orderTimestamp.toString()}, {
+                t: 'uint256',
+                v: '0'
+            }, {t: 'uint256', v: '0'}));
+
+            var msgHashMerchant = EthUtil.hashPersonalMessage(new Buffer(merchantMessageToSign));
+            var signatureMerchant = EthUtil.ecsign(msgHashMerchant, new Buffer(merchantPrivateKey, 'hex'));
+            // console.log('v: ' + signatureBuyer.v.toString())
+            // console.log('r: 0x' + signatureBuyer.r.toString('hex'))
+            // console.log('s: 0x' + signatureBuyer.s.toString('hex'))
+
+            await paymentProcessor.processPaymentThirdPartyPaysForGas(merchantAddress, SUPPLY.div(10).toString(), orderTimestamp, 0, [signatureBuyer.v.toString(), signatureMerchant.v.toString()], ['0x' + signatureBuyer.r.toString('hex'), '0x' + signatureBuyer.s.toString('hex'), '0x' + signatureMerchant.r.toString('hex'), '0x' + signatureMerchant.s.toString('hex')], 0, '0x0000000000000000000000000000000000000000', buyerAddress,
+                {from: accounts[1]})
+
+            assert.equal(await token.balanceOf(accounts[1]), '10000000', "Balance of third party incorrect");
+            assert.equal(await token.balanceOf(buyerAddress), '0', "Balance of buyer incorrect");
+            assert.equal(await token.balanceOf(merchantAddress), SUPPLY.div(5).minus(10000000).toString(), "Balance of merchant incorrect");
+        });
+
+        it('proxy governance', async function () {
+            let token = await deployTokenContract();
+            let discountManager = await DiscountManager.new()
+            let paymentProcessor_impl = await PaymentProcessor_v1.new();
+            let paymentProcessor_impl_2 = await PaymentProcessor_v2.new();
+            let paymentProcessor_proxy = await Proxy.new(paymentProcessor_impl.address, '0x');
+            let paymentProcessor = await PaymentProcessor_v1.at(paymentProcessor_proxy.address);
+            let governance = await Governance.new(token.address);
+            await paymentProcessor_proxy.changeAdmin(governance.address);
+            await paymentProcessor.initialize(token.address, discountManager.address);
+            await token.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            await discountManager.approvePaymentProcessorAddress(paymentProcessor.address);
+
+            assert.equal((await paymentProcessor.getVersion()).toString(), '1', "Version incorrect");
+            assert.equal(await paymentProcessor.getThirdPartyFeeInTokens(), new BigNumber('10').pow(7).toString(), "Third party fee incorrect");
+
+            await governance.addProposal(paymentProcessor_proxy.address, 0, abi.simpleEncode("upgradeToAndCall(address,bytes)", paymentProcessor_impl_2.address,
+                abi.simpleEncode("initialize(address,address)", token.address, discountManager.address)));
+            await token.approve(governance.address, 10000000);
+            await governance.voteProposal(0, 1, true);
+            await governance.executeTransaction(0);
+
+            assert.equal((await paymentProcessor.getVersion()).toString(), '2', "Version incorrect");
+            assert.equal(await paymentProcessor.getThirdPartyFeeInTokens(), new BigNumber('10').pow(7).multipliedBy(2).toString(), "Third party fee incorrect");
+
+            await governance.addProposal(paymentProcessor_proxy.address, 0, abi.simpleEncode("upgradeToAndCall(address,bytes)", paymentProcessor_impl.address,
+                abi.simpleEncode("initialize(address,address)", token.address, discountManager.address)));
+
+            await governance.voteProposal(1, 1, true);
+            await governance.executeTransaction(1);
 
             const buyerAddress = '0xBd2e9CaF03B81e96eE27AD354c579E1310415F39';
             const buyerPrivateKey = '43f2ee33c522046e80b67e96ceb84a05b60b9434b0ee2e3ae4b1311b9f5dcc46';

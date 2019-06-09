@@ -1,0 +1,28 @@
+tokenAddress: 0x81c6FABf14af132d47dE686B49CE64276e5cAe39
+paymentProcessorAddress: 0xf3482df547b85e2bebd3380eb91964de24672303
+discountManagerAddress: 0xa3c803345114c6bddd14039ca023a50154bfd0ce
+feeCollectorAddress: 0xC0b1907A8428428bD91f1f1C7207F991d8d1b194
+
+executiveGovernanceAddress: 0xc1ebb7C5374c65c640BC4A4d740dB1d54cc24866
+
+
+paymentProcessorAddress_v1: 0xd972ea9878e7c785b1878de3c9eb8dd0c5dd9f7d
+paymentProcessorAddress_v2: 0x3b036fF497a646C081Ad29a8DCEe8B646D825bd3
+
+
+paymentProcessorProxy: 0x94A227Bdea064Da83288F38B59bEE7857cb074A4
+
+
+
+
+buyer: 0x8bfD82d113Eb7f0A161808dDBbF63528Be3DC97F
+
+
+
+"0x81c6FABf14af132d47dE686B49CE64276e5cAe39","0xc8b08644700289d4360b52c88eee2e9431ddd4b0"
+
+
+paymentProcessorAddress_v1-no-logic: 0x44977fd62061981aedbbd8c01cf16d80120bd6f9
+
+
+executiveGovernanceAddress: 0x99b994b0803dcf8926a65b2789c45493f71fb83f
